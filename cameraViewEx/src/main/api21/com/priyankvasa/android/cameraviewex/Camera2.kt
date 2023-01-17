@@ -72,7 +72,7 @@ internal open class Camera2(
     private val preview: PreviewImpl,
     private val config: CameraConfiguration,
     private val cameraJob: Job,
-    context: Context,
+    context: Context
 ) : CameraInterface {
 
     final override val coroutineContext: CoroutineContext get() = Dispatchers.Default + cameraJob
@@ -248,7 +248,7 @@ internal open class Camera2(
                 session: CameraCaptureSession,
                 request: CaptureRequest,
                 timestamp: Long,
-                frameNumber: Long,
+                frameNumber: Long
             ) {
                 launch(Dispatchers.Main) { preview.shutterView.show() }
             }
@@ -256,7 +256,7 @@ internal open class Camera2(
             override fun onCaptureCompleted(
                 session: CameraCaptureSession,
                 request: CaptureRequest,
-                result: TotalCaptureResult,
+                result: TotalCaptureResult
             ) {
                 if (!videoManager.isVideoRecording) unlockFocus()
             }
@@ -302,7 +302,7 @@ internal open class Camera2(
      */
     private fun android.media.Image.setCropRect(
         sensorOutputOrientation: Int,
-        imageOutputOrientation: Int,
+        imageOutputOrientation: Int
     ): Boolean {
 
         val isScreenPortrait: Boolean = screenRotation % 180 == 0
@@ -574,7 +574,7 @@ internal open class Camera2(
                 override fun onCaptureCompleted(
                     session: CameraCaptureSession,
                     request: CaptureRequest,
-                    result: TotalCaptureResult,
+                    result: TotalCaptureResult
                 ) {
                     val afState: Int? = result.get(CaptureResult.CONTROL_AF_STATE)
                     val aeState: Int? = result.get(CaptureResult.CONTROL_AE_STATE)
@@ -1129,7 +1129,7 @@ internal open class Camera2(
         }
 
         launch(Dispatchers.Main) {
-            lifecycleRegistry.currentState = Lifecycle.State.STARTED
+            lifecycleRegistry.markState(Lifecycle.State.STARTED)
         }
 
         val surfaces: List<Surface> = runCatching { setupSurfaces(previewRequestBuilder) }
@@ -1148,7 +1148,7 @@ internal open class Camera2(
     @Throws(IllegalStateException::class)
     private fun setupSurfaces(
         captureRequestBuilder: CaptureRequest.Builder,
-        shouldAddMediaRecorderSurface: Boolean = false,
+        shouldAddMediaRecorderSurface: Boolean = false
     ): MutableList<Surface> {
 
         val surfaces: MutableList<Surface> = mutableListOf()
