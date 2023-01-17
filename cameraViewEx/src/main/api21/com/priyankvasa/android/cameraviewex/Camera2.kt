@@ -20,20 +20,10 @@ package com.priyankvasa.android.cameraviewex
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
-import android.arch.lifecycle.Lifecycle
-import android.arch.lifecycle.LifecycleRegistry
 import android.content.Context
 import android.graphics.ImageFormat
 import android.graphics.Rect
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CameraCharacteristics
-import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.CaptureResult
-import android.hardware.camera2.TotalCaptureResult
+import android.hardware.camera2.*
 import android.hardware.camera2.params.MeteringRectangle
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.ImageReader
@@ -45,22 +35,15 @@ import android.os.SystemClock
 import android.renderscript.RenderScript
 import android.util.SparseIntArray
 import android.view.Surface
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleRegistry
 import com.priyankvasa.android.cameraviewex.exif.ExifInterface
-import com.priyankvasa.android.cameraviewex.extension.chooseOptimalSize
-import com.priyankvasa.android.cameraviewex.extension.cropHeight
-import com.priyankvasa.android.cameraviewex.extension.cropWidth
-import com.priyankvasa.android.cameraviewex.extension.isAfSupported
-import com.priyankvasa.android.cameraviewex.extension.isAwbSupported
-import com.priyankvasa.android.cameraviewex.extension.isHardwareLevelSupported
-import com.priyankvasa.android.cameraviewex.extension.isNoiseReductionSupported
-import com.priyankvasa.android.cameraviewex.extension.isOisSupported
-import com.priyankvasa.android.cameraviewex.extension.isVideoStabilizationSupported
+import com.priyankvasa.android.cameraviewex.extension.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.SortedSet
-import java.util.TreeSet
+import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.CoroutineContext
@@ -72,13 +55,13 @@ internal open class Camera2(
     private val preview: PreviewImpl,
     private val config: CameraConfiguration,
     private val cameraJob: Job,
-    context: Context
+    context: Context,
 ) : CameraInterface {
 
     final override val coroutineContext: CoroutineContext get() = Dispatchers.Default + cameraJob
 
     private val lifecycleRegistry: LifecycleRegistry by lazy {
-        LifecycleRegistry(this).also { it.markState(Lifecycle.State.CREATED) }
+        LifecycleRegistry(this).also { it.currentState = Lifecycle.State.CREATED }
     }
 
     init {
@@ -248,7 +231,7 @@ internal open class Camera2(
                 session: CameraCaptureSession,
                 request: CaptureRequest,
                 timestamp: Long,
-                frameNumber: Long
+                frameNumber: Long,
             ) {
                 launch(Dispatchers.Main) { preview.shutterView.show() }
             }
@@ -256,7 +239,7 @@ internal open class Camera2(
             override fun onCaptureCompleted(
                 session: CameraCaptureSession,
                 request: CaptureRequest,
-                result: TotalCaptureResult
+                result: TotalCaptureResult,
             ) {
                 if (!videoManager.isVideoRecording) unlockFocus()
             }
@@ -302,7 +285,7 @@ internal open class Camera2(
      */
     private fun android.media.Image.setCropRect(
         sensorOutputOrientation: Int,
-        imageOutputOrientation: Int
+        imageOutputOrientation: Int,
     ): Boolean {
 
         val isScreenPortrait: Boolean = screenRotation % 180 == 0
@@ -519,7 +502,7 @@ internal open class Camera2(
     final override var screenRotation: Int = 0
 
     final override val isActive: Boolean
-        get() = cameraJob.isActive && backgroundHandler.looper?.thread?.isAlive == true
+        get() = cameraJob.isActive && backgroundHandler.looper.thread.isAlive
 
     final override val isCameraOpened: Boolean get() = camera != null
 
@@ -574,7 +557,7 @@ internal open class Camera2(
                 override fun onCaptureCompleted(
                     session: CameraCaptureSession,
                     request: CaptureRequest,
-                    result: TotalCaptureResult
+                    result: TotalCaptureResult,
                 ) {
                     val afState: Int? = result.get(CaptureResult.CONTROL_AF_STATE)
                     val aeState: Int? = result.get(CaptureResult.CONTROL_AE_STATE)
@@ -585,7 +568,8 @@ internal open class Camera2(
                         aeState != CaptureResult.CONTROL_AE_STATE_CONVERGED &&
                         aeState != CaptureResult.CONTROL_AE_STATE_LOCKED &&
                         awbState != CaptureResult.CONTROL_AWB_STATE_CONVERGED &&
-                        awbState != CaptureResult.CONTROL_AWB_STATE_LOCKED) return
+                        awbState != CaptureResult.CONTROL_AWB_STATE_LOCKED
+                    ) return
 
                     runCatching {
 
@@ -809,7 +793,10 @@ internal open class Camera2(
             } catch (e: Exception) {
                 noiseReduction.revert()
                 listener.onCameraError(
-                    CameraViewException("Failed to set noiseReduction to $it. Value reverted to ${noiseReduction.value}.", e),
+                    CameraViewException(
+                        "Failed to set noiseReduction to $it. Value reverted to ${noiseReduction.value}.",
+                        e
+                    ),
                     ErrorLevel.Warning
                 )
             }
@@ -863,13 +850,15 @@ internal open class Camera2(
         }
         collectCameraInfo()
         prepareSingleCaptureReader()
-        cameraManager.openCamera(this.cameraId, cameraDeviceCallback, backgroundHandler)
+        cameraManager.openCamera(this.cameraId, cameraDeviceCallback, null)
         return@runCatching true
     }
         .getOrElse {
             cameraOpenCloseLock.release()
             when (it) {
-                is SecurityException -> listener.onCameraError(CameraViewException("Camera permissions not granted", it))
+                is SecurityException -> listener.onCameraError(
+                    CameraViewException("Camera permissions not granted", it)
+                )
                 else -> listener.onCameraError(CameraViewException("Failed to open camera with id '$cameraId'", it))
             }
             return@getOrElse false
@@ -1107,7 +1096,12 @@ internal open class Camera2(
             previewSizes.sizes(config.sensorAspectRatio)
                 .runCatching { chooseOptimalSize(preview.width, preview.height) }
                 .getOrElse {
-                    listener.onCameraError(CameraViewException("No supported preview size available. This camera device (id $cameraId) is not supported.", it))
+                    listener.onCameraError(
+                        CameraViewException(
+                            "No supported preview size available. This camera device (id $cameraId) is not supported.",
+                            it
+                        )
+                    )
                     return
                 }
 
@@ -1128,7 +1122,9 @@ internal open class Camera2(
             return
         }
 
-        lifecycleRegistry.markState(Lifecycle.State.STARTED)
+        launch(Dispatchers.Main) {
+            lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        }
 
         val surfaces: List<Surface> = runCatching { setupSurfaces(previewRequestBuilder) }
             .getOrElse {
@@ -1146,7 +1142,7 @@ internal open class Camera2(
     @Throws(IllegalStateException::class)
     private fun setupSurfaces(
         captureRequestBuilder: CaptureRequest.Builder,
-        shouldAddMediaRecorderSurface: Boolean = false
+        shouldAddMediaRecorderSurface: Boolean = false,
     ): MutableList<Surface> {
 
         val surfaces: MutableList<Surface> = mutableListOf()
