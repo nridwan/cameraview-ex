@@ -51,13 +51,6 @@ class CameraView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    init {
-        if (!isInEditMode && BuildConfig.DEBUG) {
-            Timber.forest().find { it is Timber.DebugTree } ?: Timber.plant(Timber.DebugTree())
-            System.setProperty("kotlinx.coroutines.debug", "on")
-        }
-    }
-
     private val parentJob: Job by lazy { SupervisorJob() }
 
     private val coroutineScope: CoroutineScope by lazy { CoroutineScope(parentJob + Dispatchers.Main) }
@@ -863,6 +856,13 @@ class CameraView @JvmOverloads constructor(
         val shutter: Int,
         val zsl: Boolean
     ) : View.BaseSavedState(parcelable), Parcelable
+
+    fun debug() {
+        if (!isInEditMode && BuildConfig.DEBUG) {
+            Timber.forest().find { it is Timber.DebugTree } ?: Timber.plant(Timber.DebugTree())
+            System.setProperty("kotlinx.coroutines.debug", "on")
+        }
+    }
 }
 
 @JvmSynthetic

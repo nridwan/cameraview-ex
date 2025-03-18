@@ -137,9 +137,6 @@ dependencies {
     implementation(Config.Libs.supportTransition)
     implementation(Config.Libs.supportExifInterface)
 
-    // Dependency injection
-    implementation(Config.Libs.koin)
-
     // KotlinX
     implementation(Config.Libs.coroutinesCore)
     implementation(Config.Libs.coroutinesAndroid)

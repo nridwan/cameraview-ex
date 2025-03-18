@@ -43,7 +43,6 @@ object Config {
         const val googleServices = "4.2.0"
         const val firebaseCore = "16.0.5"
         const val firebaseMlVision = "18.0.1"
-        const val koin = "1.0.2"
         const val coroutines = "1.2.0"
         const val timber = "4.7.1"
         const val glide = "4.8.0"
@@ -77,7 +76,6 @@ object Config {
         const val constraintLayout = "com.android.support.constraint:constraint-layout:${Versions.constraintLayout}"
 
         const val lifecycleLivedata = "android.arch.lifecycle:livedata-core:${Versions.lifecycle}"
-        const val koin = "org.koin:koin-android:${Versions.koin}"
         const val coroutinesCore = "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.coroutines}"
         const val coroutinesAndroid = "org.jetbrains.kotlinx:kotlinx-coroutines-android:${Versions.coroutines}"
 
