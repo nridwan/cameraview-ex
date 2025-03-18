@@ -21,7 +21,7 @@ buildscript {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url "https://repo.grails.org/grails/core/" }
+        maven { url = uri("https://repo.grails.org/grails/core/") }
     }
 
     dependencies {
@@ -40,7 +40,7 @@ allprojects {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url "https://repo.grails.org/grails/core/" }
+        maven { url = uri("https://repo.grails.org/grails/core/") }
     }
 
     dependencies {
